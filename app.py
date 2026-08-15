@@ -22,12 +22,33 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    :root {--blue:#243b83; --blue2:#4056a1; --burgundy:#7a2645; --ink:#17223b; --muted:#5e6779; --surface:#f5f7fb;}
-    .block-container {padding-top: 1.8rem; padding-bottom: 3rem; max-width: 1500px;}
+    :root {--navy:#132b46; --blue:#245f82; --teal:#16827b; --sky:#eaf4f7; --burgundy:#8b3152; --ink:#172536; --muted:#607080; --surface:#f4f7f8;}
+    .stApp {background:linear-gradient(180deg,#f7fafb 0,#fff 24rem);}
+    .block-container {padding-top: 1.25rem; padding-bottom:4rem; max-width:1440px;}
     h1, h2, h3, h4 {color:var(--ink); letter-spacing:-.015em;}
     h1 {color:var(--blue); margin-bottom:.15rem;}
     [data-testid="stSidebar"] {background:#f7f8fc; border-right:1px solid #e4e7ef;}
     [data-testid="stSidebar"] h2 {color:var(--blue);}
+    .hero {position:relative; overflow:hidden; padding:2.6rem 2.8rem; border-radius:22px; color:white; margin-bottom:1.7rem; background:linear-gradient(120deg,#102a45 0%,#1d536f 62%,#16827b 115%); box-shadow:0 18px 45px #17354a24;}
+    .hero:after {content:""; position:absolute; width:330px; height:330px; border:1px solid #ffffff24; border-radius:50%; right:-80px; top:-170px; box-shadow:0 0 0 45px #ffffff0a,0 0 0 90px #ffffff08;}
+    .hero-kicker {font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; font-weight:750; color:#b9e4df; margin-bottom:.7rem;}
+    .hero-title {font-size:clamp(2rem,4vw,3.35rem); line-height:1.03; max-width:760px; letter-spacing:-.04em; font-weight:730;}
+    .hero-copy {font-size:1.05rem; line-height:1.65; color:#e2edf1; max-width:720px; margin-top:1rem;}
+    .eyebrow {font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; font-weight:750; color:var(--teal); margin-bottom:.2rem;}
+    .section-heading {font-size:1.55rem; color:var(--navy); font-weight:720; letter-spacing:-.02em;}
+    .section-copy {color:var(--muted); margin:-.15rem 0 1rem;}
+    div[data-testid="stButton"] button {border-radius:14px; border:1px solid #d8e3e7; min-height:3rem; font-weight:650; transition:.18s ease;}
+    div[data-testid="stButton"] button:hover {border-color:var(--teal); color:var(--teal); transform:translateY(-1px); box-shadow:0 7px 18px #17485a16;}
+    div[data-testid="stExpander"] {background:#fff; border:1px solid #dce6e9; border-radius:15px; box-shadow:0 6px 20px #16344b0a; overflow:hidden; margin-bottom:.75rem;}
+    div[data-testid="stExpander"] summary {font-weight:680; color:var(--navy); padding:.2rem .45rem;}
+    .snapshot-head {background:linear-gradient(135deg,#edf6f7,#f7fafb); border:1px solid #d5e5e7; border-radius:17px; padding:1.25rem 1.4rem; margin:1.1rem 0;}
+    .snapshot-name {font-size:1.45rem; color:var(--navy); font-weight:740;}
+    .snapshot-meta {color:var(--muted); margin-top:.2rem;}
+    .module {background:white; border:1px solid #dce6e9; border-radius:15px; padding:1rem 1.15rem; min-height:150px; box-shadow:0 5px 18px #16344b09;}
+    .module-title {color:var(--navy); font-weight:720; margin-bottom:.65rem;}
+    .progress-label {display:flex; justify-content:space-between; color:var(--muted); font-size:.82rem; margin:.3rem 0;}
+    .progress-track {height:8px; background:#e4ecee; border-radius:99px; overflow:hidden; margin-bottom:1.1rem;}
+    .progress-fill {height:100%; background:linear-gradient(90deg,var(--teal),#59afa2); border-radius:99px;}
     .intro-kicker {font-size:1.22rem; font-weight:650; color:var(--burgundy); margin:.15rem 0 .45rem;}
     .intro-copy {color:#485266; max-width:880px; font-size:1rem; margin-bottom:1.4rem;}
     .flow-label {font-size:.75rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:700;}
@@ -48,18 +69,16 @@ st.markdown(
     div[data-baseweb="tab-list"] {gap:.2rem; border-bottom:1px solid #dfe3ec;}
     button[data-baseweb="tab"] {color:#4a5366; font-weight:600; padding-left:.9rem; padding-right:.9rem;}
     button[data-baseweb="tab"][aria-selected="true"] {color:var(--blue);}
-    @media(max-width:800px) {.priority-grid {grid-template-columns:1fr;} .flow-arrow {display:none;}}
+    @media(max-width:800px) {.priority-grid {grid-template-columns:1fr;} .flow-arrow {display:none;} .hero{padding:1.7rem 1.35rem;border-radius:16px}.hero-title{font-size:2rem}.block-container{padding-left:1rem;padding-right:1rem} div[data-testid="stHorizontalBlock"]{gap:.65rem}}
 </style>
 """,
     unsafe_allow_html=True,
 )
 
-st.title("Stroke Transitions of Care Clinic Navigator")
-st.markdown('<div class="intro-kicker">Supporting timely follow-up after stroke discharge</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="intro-copy">The early post-discharge period is a high-risk time for readmission. '
-    "This navigator helps the care team identify recently discharged stroke patients who need "
-    "follow-up and coordinate their next steps.</div>",
+    '<section class="hero"><div class="hero-kicker">Stroke Transitions of Care Clinic</div>'
+    '<div class="hero-title">Every transition, clearly in view.</div>'
+    '<div class="hero-copy">A focused clinical workspace for the vulnerable weeks after stroke—bringing follow-up, care gaps, access needs, and readmission outcomes into one coordinated view.</div></section>',
     unsafe_allow_html=True,
 )
 
@@ -134,57 +153,50 @@ active_episodes = patients[patients.patient_section != "Closed Loop / Completed"
 readmissions_30 = patients[patients.readmission_window == "Readmission within 30 days"]
 readmissions_90 = patients[patients.readmission_window == "Readmission within 31–90 days"]
 
-st.markdown("### Patient overview")
-overview = st.columns([1, .16, 1, .16, 1, .16, 1])
-flow_values = [
-    ("STCC eligible active episodes", len(active_episodes)),
-    ("Appointment / visit needed", len(active)),
-    ("Visit completed — tasks pending", len(post_visit)),
-    ("Transition complete", len(completed)),
+st.markdown('<div class="eyebrow">Command center</div><div class="section-heading">Transition overview</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-copy">Select a tile to open the corresponding patient cohort below.</div>', unsafe_allow_html=True)
+
+st.markdown("#### Active Transitions")
+active_tiles = st.columns(3)
+active_tile_data = [
+    ("active", "Appointment needed", len(active), "Coordinate the clinic visit"),
+    ("post", "Follow-up needs", len(post_visit), "Close post-visit care gaps"),
+    ("closed", "Transition complete", len(completed), "Review closed-loop episodes"),
 ]
-for index, (label, value) in enumerate(flow_values):
-    card_index = index * 2
-    overview[card_index].markdown(
-        f'<div class="flow-card"><div class="flow-label">{label}</div>'
-        f'<div class="flow-value">{value:,}</div></div>',
-        unsafe_allow_html=True,
-    )
-    if index < len(flow_values) - 1:
-        overview[card_index + 1].markdown('<div class="flow-arrow">→</div>', unsafe_allow_html=True)
+for column, (focus, label, count, help_text) in zip(active_tiles, active_tile_data):
+    with column:
+        st.metric(label, f"{count:,}", help=help_text)
+        if st.button(f"View {label.lower()} →", key=f"tile_{focus}", width="stretch"):
+            st.session_state.cohort_focus = focus
 
-st.markdown(
-    f"""
-<div class="flow-branch">
-  <div class="branch-title">Appointment needed — priority</div>
-  <div class="priority-grid">
-    <div class="priority immediate"><strong>Immediate Action Required</strong><span>{int((active.workflow_category == 'Immediate Action Required').sum()):,}</span></div>
-    <div class="priority action"><strong>Action Needed</strong><span>{int((active.workflow_category == 'Action Needed').sum()):,}</span></div>
-    <div class="priority track"><strong>On Track</strong><span>{int((active.workflow_category == 'On Track').sum()):,}</span></div>
-  </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-readmission_columns = st.columns(2)
-readmission_columns[0].markdown(
-    f'<div class="flow-card"><div class="flow-label">Readmissions within 30 days</div><div class="flow-value">{len(readmissions_30):,}</div></div>',
-    unsafe_allow_html=True,
-)
-readmission_columns[1].markdown(
-    f'<div class="flow-card"><div class="flow-label">Readmissions within 31–90 days</div><div class="flow-value">{len(readmissions_90):,}</div></div>',
-    unsafe_allow_html=True,
-)
-st.caption(f"Current as of **{as_of:%B %d, %Y}**")
+st.markdown("#### Needs Attention")
+attention_tiles = st.columns(3)
+attention_data = [
+    ("Immediate action", int((active.workflow_category == "Immediate Action Required").sum()), "immediate"),
+    ("Action needed", int((active.workflow_category == "Action Needed").sum()), "action"),
+    ("On track", int((active.workflow_category == "On Track").sum()), "track"),
+]
+for column, (label, count, focus) in zip(attention_tiles, attention_data):
+    with column:
+        st.metric(label, f"{count:,}")
+        if st.button(f"Explore {label.lower()} →", key=f"attention_{focus}", width="stretch"):
+            st.session_state.cohort_focus = "active"
+            st.session_state["cat_active"] = [
+                {"immediate": "Immediate Action Required", "action": "Action Needed", "track": "On Track"}[focus]
+            ]
 
-active_tab, post_tab, tasks_tab, closed_tab, rules_tab = st.tabs(
-    [
-        "Appointment Needed",
-        "Follow-Up Needs",
-        "Care Team Tasks",
-        "Completed",
-        "How Patients Are Prioritized",
-    ]
-)
+st.markdown("#### Readmission Outcomes")
+outcome_tiles = st.columns(2)
+for column, label, count, key in (
+    (outcome_tiles[0], "Within 30 days", len(readmissions_30), "30"),
+    (outcome_tiles[1], "31–90 days", len(readmissions_90), "90"),
+):
+    with column:
+        st.metric(label, f"{count:,}", help="Readmission documented for this transition episode")
+        if st.button(f"Review {label.lower()} outcomes →", key=f"readmission_{key}", width="stretch"):
+            st.session_state.cohort_focus = "readmission"
+
+st.caption(f"Current as of **{as_of:%B %d, %Y}** · {len(active_episodes):,} active eligible episodes")
 
 
 def render_context(*items: str) -> None:
@@ -347,98 +359,145 @@ def render_status_update(row: pd.Series, key: str) -> None:
                 st.rerun()
 
 
+def yes_no(value: object) -> str:
+    """Turn source flags into concise, accessible UI labels."""
+    return "Complete" if value == "Yes" else "Needs attention"
+
+
 def render_patient_list(frame: pd.DataFrame, key: str, *, appointment_controls: bool = False) -> None:
+    """Render a compact cohort and progressively disclose the selected episode."""
     filtered = appointment_filters(frame, key) if appointment_controls else patient_search(frame, key)
-    st.markdown(f'<div class="section-count"><b>{len(filtered):,}</b> patients</div>', unsafe_allow_html=True)
+    st.caption(f"{len(filtered):,} patient episodes")
     display = filtered.copy()
     display["patient_id"] = display.patient_id.map(lambda value: f"Patient {patient_number(value)}")
-    display["primary_reason"] = display.primary_reason.str.replace("STCC", "stroke clinic", regex=False)
     if key == "closed":
         display["workflow_category"] = "Completed"
+    # Keep the cohort view intentionally scannable; detail belongs in the snapshot.
     columns = [
-        "workflow_state", "workflow_category", "patient_id", "appointment_status", "admission_date", "discharge_date",
-        "days_since_discharge", "appointment_date", "days_until_appointment", "primary_reason",
-        "unresolved_task_count", "recorded_barrier_count", "stroke_type", "nihss", "mrs",
-        "discharge_disposition", "readmission_window",
+        "patient_id", "workflow_category", "appointment_status", "discharge_date",
+        "days_since_discharge", "unresolved_task_count", "recorded_barrier_count",
     ]
     st.dataframe(
         display[columns], width="stretch", hide_index=True,
         column_config={
-            "workflow_state": "Patient status", "workflow_category": "Priority", "patient_id": "Patient",
-            "appointment_status": "Appointment status",
-            "admission_date": st.column_config.DateColumn("Admitted"),
-            "discharge_date": st.column_config.DateColumn("Discharged"),
-            "days_since_discharge": "Days since discharge",
-            "appointment_date": st.column_config.DateColumn("Appointment date"),
-            "days_until_appointment": "Days until appointment",
-            "primary_reason": "Why attention is needed", "unresolved_task_count": "Tasks",
-            "recorded_barrier_count": "Barriers", "stroke_type": "Stroke type", "nihss": "NIHSS",
-            "mrs": "mRS", "discharge_disposition": "Disposition",
-            "readmission_window": "Hospitalization history",
+            "patient_id": "Patient", "workflow_category": "Priority",
+            "appointment_status": "Follow-up", "discharge_date": st.column_config.DateColumn("Discharged"),
+            "days_since_discharge": "Days out", "unresolved_task_count": "Open tasks",
+            "recorded_barrier_count": "Access needs",
         },
     )
     if filtered.empty:
+        st.info("No episodes match the current filters.")
         return
+
     episode_options = list(filtered[["patient_id", "discharge_date"]].itertuples(index=False, name=None))
     selected_id, selected_discharge = st.selectbox(
-        "Patient detail", episode_options,
-        format_func=lambda value: episode_label(value[0], value[1]),
-        key=f"patient_{key}",
+        "Open Patient Snapshot", episode_options,
+        format_func=lambda value: episode_label(value[0], value[1]), key=f"patient_{key}",
     )
     row = filtered.loc[
         (filtered.patient_id == selected_id) & (filtered.discharge_date == selected_discharge)
     ].iloc[0]
-    heading_context = row.workflow_category
+    patient_tasks = tasks[(tasks.patient_id == selected_id) & (tasks.discharge_date == selected_discharge)]
+    completed_steps = 1 + int(row.appointment_status == "Completed") + int(row.med_reconciliation_completed == "Yes") + int(row.secondary_prevention_plan_documented == "Yes") + int(row.pcp_followup_arranged == "Yes")
+    progress = 100 if row.patient_section == "Closed Loop / Completed" else round(completed_steps / 5 * 100)
+    appointment = row.appointment_date.strftime("%b %d, %Y") if pd.notna(row.appointment_date) else "Not scheduled"
+    context = "Transition Complete" if row.patient_section == "Closed Loop / Completed" else row.workflow_category
+
+    st.markdown(
+        f'<div class="snapshot-head"><div class="eyebrow">Patient Snapshot · {context}</div>'
+        f'<div class="snapshot-name">Patient {patient_number(row.patient_id)}</div>'
+        f'<div class="snapshot-meta">{row.age}-year-old {str(row.sex).lower()} · {row.stroke_type} · discharged {row.discharge_date:%B %d, %Y}</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="progress-label"><span>Transition progress</span><strong>{progress}%</strong></div>'
+        f'<div class="progress-track"><div class="progress-fill" style="width:{progress}%"></div></div>',
+        unsafe_allow_html=True,
+    )
     if row.patient_section == "Closed Loop / Completed":
-        heading_context = "Completed"
-    st.subheader(f"Patient {patient_number(row.patient_id)} · {heading_context}")
-    left, right = st.columns([1.15, 1])
-    with left:
-        st.markdown("#### Why this patient is here")
-        st.info(str(row.primary_reason).replace("STCC", "stroke clinic"))
-        st.markdown("#### Outstanding needs")
-        patient_tasks = tasks[
-            (tasks.patient_id == selected_id) & (tasks.discharge_date == selected_discharge)
-        ]
+        st.success("Transition Complete — clinic follow-up and all documented transition needs are closed.", icon="✓")
+    else:
+        st.info(str(row.primary_reason).replace("STCC", "stroke clinic"), icon="→")
+
+    clinic, coordination, access = st.columns(3)
+    with clinic:
+        st.markdown('<div class="module"><div class="module-title">Clinic Follow-Up</div>', unsafe_allow_html=True)
+        st.write(f"**Status**  \n{row.appointment_status}")
+        st.write(f"**Appointment**  \n{appointment}")
+        st.write(f"**Target window**  \n{target_days} days after discharge")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with coordination:
+        st.markdown('<div class="module"><div class="module-title">Care Coordination</div>', unsafe_allow_html=True)
+        st.write(f"**Medication reconciliation**  \n{yes_no(row.med_reconciliation_completed)}")
+        st.write(f"**Prevention plan**  \n{yes_no(row.secondary_prevention_plan_documented)}")
+        st.write(f"**PCP follow-up**  \n{yes_no(row.pcp_followup_arranged)}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with access:
+        st.markdown('<div class="module"><div class="module-title">Access & Support</div>', unsafe_allow_html=True)
+        barrier_labels = {
+            "transportation_barrier": "Transportation", "housing_instability": "Housing",
+            "food_insecurity": "Food access", "economic_or_insurance_barrier": "Coverage / cost",
+            "limited_caregiver_support": "Caregiver support",
+        }
+        needs = [label for field, label in barrier_labels.items() if row[field] == "Yes"]
+        if needs:
+            for need in needs:
+                st.write(f"• {need}")
+        else:
+            st.write("No documented access barriers")
+        st.write(f"**Discharge setting**  \n{row.discharge_disposition}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with st.expander(f"Care Team Tasks · {len(patient_tasks)} open", expanded=False):
         if patient_tasks.empty:
             st.success("No outstanding transition needs.")
         else:
             for _, task in patient_tasks.iterrows():
                 gap = str(task.outstanding_task).replace("STCC", "Stroke clinic")
                 action = str(task.recommended_action).replace("STCC", "stroke clinic")
-                st.markdown(f"**{task.task_domain} — {gap}**  \n{action}")
-    with right:
-        st.markdown("#### Appointment timeline")
-        appt = row.appointment_date.strftime("%b %d, %Y") if pd.notna(row.appointment_date) else "Not scheduled"
-        st.write(
-            f"**Admitted:** {row.admission_date:%b %d, %Y}  \n"
-            f"**Discharged:** {row.discharge_date:%b %d, %Y}  \n"
-            f"**Status:** {row.appointment_status}  \n**Stroke clinic appointment:** {appt}  \n"
-            f"**Days since discharge:** {row.days_since_discharge}  \n"
-            f"**Hospitalization history:** {row.readmission_window}"
-        )
-        st.markdown("#### Clinical context")
-        st.write(
-            f"**{row.age}-year-old {str(row.sex).lower()}**  \n{row.stroke_type} · {row.stroke_etiology}  \n"
-            f"NIHSS {row.nihss} · mRS {row.mrs}  \nDischarged to: {row.discharge_disposition}"
-        )
-    render_status_update(row, key)
+                st.markdown(f"**{task.task_domain} · {gap}**  \n{action}")
+                st.divider()
+    with st.expander("Clinical Snapshot", expanded=False):
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Stroke type", row.stroke_type)
+        c2.metric("Etiology", row.stroke_etiology)
+        c3.metric("NIHSS", row.nihss)
+        c4.metric("mRS", row.mrs)
+        st.caption(f"Admitted {row.admission_date:%b %d, %Y} · discharged to {row.discharge_disposition}")
+    with st.expander("Hospitalization & Readmission History", expanded=False):
+        st.write(f"**Index admission:** {row.admission_date:%B %d, %Y} – {row.discharge_date:%B %d, %Y}")
+        st.write(f"**Readmission outcome:** {row.readmission_window}")
+    with st.expander("Update Patient Snapshot · session only", expanded=False):
+        render_status_update(row, key)
 
 
-with active_tab:
-    st.header("Appointment Needed")
-    st.write("Recently discharged stroke patients who still need to complete their stroke clinic visit.")
+st.divider()
+st.markdown('<div class="eyebrow">Patient workspace</div><div class="section-heading">Patient cohorts</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-copy">Cohorts stay collapsed until you are ready to review patients and open a snapshot.</div>', unsafe_allow_html=True)
+focus = st.session_state.get("cohort_focus")
+
+if st.toggle(f"Appointment Needed · {len(active):,}", value=focus == "active", key="show_active"):
+    st.write("Recently discharged patients who still need to complete their stroke clinic visit.")
     render_patient_list(active, "active", appointment_controls=True)
 
-with post_tab:
-    st.header("Follow-Up Needs")
-    st.write("The stroke clinic visit is complete, but one or more follow-up needs still require attention.")
+if st.toggle(f"Follow-Up Needs · {len(post_visit):,}", value=focus == "post", key="show_post"):
+    st.write("The clinic visit is complete, but one or more transition needs remain open.")
     render_context("Appointment status: Completed")
     render_patient_list(post_visit, "post")
 
-with tasks_tab:
-    st.header("Care Team Tasks")
-    st.write("View outstanding follow-up tasks and identify which care team needs to take the next step.")
+if st.toggle(f"Readmission Outcomes · {len(readmissions_30) + len(readmissions_90):,}", value=focus == "readmission", key="show_readmission"):
+    readmission_view = patients[patients.readmission_window.isin(["Readmission within 30 days", "Readmission within 31–90 days"])]
+    st.write("Review transition episodes with a documented readmission within 90 days.")
+    render_patient_list(readmission_view, "readmission")
+
+if st.toggle(f"Transition Complete · {len(completed):,}", value=focus == "closed", key="show_closed"):
+    st.write("Clinic follow-up and all documented transition needs are complete.")
+    render_context("Status: Completed", "Closed loop")
+    render_patient_list(completed, "closed")
+
+with st.expander(f"All Care Team Tasks · {len(tasks):,}", expanded=False):
+    st.write("Filter outstanding work by accountable care team or patient cohort.")
     if tasks.empty:
         st.success("No outstanding tasks.")
     else:
@@ -453,57 +512,25 @@ with tasks_tab:
         task_display = task_view.copy()
         task_display["patient_id"] = task_display.patient_id.map(lambda value: f"Patient {patient_number(value)}")
         task_display["patient_section"] = task_display.patient_section.map(SECTION_LABELS)
-        task_display["outstanding_task"] = task_display.outstanding_task.str.replace(
-            "STCC", "Stroke clinic", regex=False
-        )
-        task_display["recommended_action"] = task_display.recommended_action.str.replace(
-            "STCC", "stroke clinic", regex=False
-        )
-        task_display["workflow_category"] = task_display.apply(
-            lambda row: (
-                "Completed" if row.patient_section == "Completed" else row.workflow_category
-            ),
-            axis=1,
-        )
-        st.write(f"**{len(task_display):,} tasks**")
+        task_display["outstanding_task"] = task_display.outstanding_task.str.replace("STCC", "Stroke clinic", regex=False)
+        task_display["recommended_action"] = task_display.recommended_action.str.replace("STCC", "stroke clinic", regex=False)
         st.dataframe(
-            task_display, width="stretch", hide_index=True,
-            column_config={
-                "patient_id": "Patient", "patient_section": "Patient group",
-                "workflow_state": "Patient status", "workflow_category": "Priority",
-                "appointment_status": "Appointment status",
-                "discharge_date": st.column_config.DateColumn("Episode discharge"),
-                "days_since_discharge": "Days since discharge", "task_domain": "Care team",
-                "outstanding_task": "Outstanding task", "recommended_action": "Recommended next action",
-            },
+            task_display[["patient_id", "patient_section", "task_domain", "outstanding_task", "recommended_action"]],
+            width="stretch", hide_index=True,
+            column_config={"patient_id": "Patient", "patient_section": "Cohort", "task_domain": "Care team", "outstanding_task": "Open task", "recommended_action": "Recommended next action"},
         )
 
-with closed_tab:
-    st.header("Completed")
-    st.write("Patients who completed their stroke clinic visit and have no remaining documented transition needs.")
-    render_context("Status: Completed", "Transition needs: Complete")
-    render_patient_list(completed, "closed")
-
-with rules_tab:
-    st.header("How Patients Are Prioritized")
+with st.expander("How patients are prioritized", expanded=False):
     st.markdown(
-        f"""
-**Immediate Action Required**
-
-The visit was cancelled or missed, a scheduled date has passed without completion, the patient
-remains unscheduled more than **{escalation_days} days** after discharge, or needs across multiple
-care areas and an access barrier require coordination.
+        f"""**Immediate Action Required**
+A visit was cancelled or missed, a scheduled date passed without completion, the patient remains
+unscheduled more than **{escalation_days} days** after discharge, or cross-domain needs and an access barrier require coordination.
 
 **Action Needed**
-
-The patient has another scheduling or transition need, including an appointment outside the
-**{target_days}-day** target follow-up window.
+Another scheduling or transition need is open, including an appointment outside the **{target_days}-day** target window.
 
 **On Track**
+The patient is scheduled within the target window with no pre-visit action needed.
 
-The patient is scheduled within the target window and has no pre-visit action needed.
-
-After a stroke clinic visit, patients with remaining needs move to **Follow-Up Needs**. Patients
-with no remaining needs move to **Completed**.
-"""
+After a clinic visit, patients with remaining needs move to **Follow-Up Needs**. Patients with no remaining needs move to **Transition Complete**."""
     )
