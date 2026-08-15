@@ -200,3 +200,13 @@ def derive_workflow(frame: pd.DataFrame, as_of: date, target_days: int = 14, esc
 
 def section_counts(patients: pd.DataFrame, sections: Iterable[str]) -> dict[str, int]:
     return {section: int((patients.patient_section == section).sum()) for section in sections}
+
+
+def readmission_outcome_cohorts(patients: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Return episode cohorts using the already-derived readmission window."""
+    observed = patients.readmission_window
+    return {
+        "Readmission within 30 days": patients[observed == "Readmission within 30 days"],
+        "Readmission 31–90 days": patients[observed == "Readmission within 31–90 days"],
+        "No readmission observed to date": patients[observed == "First recorded hospitalization"],
+    }
