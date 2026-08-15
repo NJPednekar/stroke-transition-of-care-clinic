@@ -177,6 +177,27 @@ def test_duplicate_episode_key_is_rejected():
         load_data(StringIO(duplicate_episode.to_csv(index=False)))
 
 
+def test_task_rows_remain_scoped_to_repeat_hospitalization_episode():
+    first = base_patient(
+        patient_id="STCC-REPEAT", admission_date=pd.Timestamp("2026-06-25"),
+        discharge_date=pd.Timestamp("2026-07-01"), med_reconciliation_completed="No",
+    )
+    second = base_patient(
+        patient_id="STCC-REPEAT", admission_date=pd.Timestamp("2026-07-20"),
+        discharge_date=pd.Timestamp("2026-07-24"), med_reconciliation_completed="No",
+    )
+
+    _, tasks = derive_workflow(pd.DataFrame([first, second]), date(2026, 8, 5))
+    medication_tasks = tasks[
+        tasks.outstanding_task == "Medication reconciliation incomplete"
+    ]
+
+    assert len(medication_tasks) == 2
+    assert set(medication_tasks.discharge_date) == {
+        pd.Timestamp("2026-07-01"), pd.Timestamp("2026-07-24")
+    }
+
+
 def test_default_bundled_csv_loads_with_repeat_hospitalizations():
     loaded = load_data(DATA)
 
