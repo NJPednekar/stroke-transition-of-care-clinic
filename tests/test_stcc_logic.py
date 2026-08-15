@@ -143,6 +143,7 @@ def test_repeat_hospitalizations_are_distinct_transition_episodes():
 
 def test_updated_dataset_has_valid_admissions_and_repeat_episode_windows():
     frame = load_data(DATA)
+    assert frame.patient_id.nunique() == 200
     assert (frame.admission_date < frame.discharge_date).all()
     assert not frame.duplicated(["patient_id", "discharge_date"]).any()
 
@@ -154,3 +155,20 @@ def test_updated_dataset_has_valid_admissions_and_repeat_episode_windows():
     ).dt.days.dropna()
     assert intervals.between(0, 30).any()
     assert intervals.between(31, 90).any()
+
+
+def test_demo_population_represents_every_workflow_state_and_priority():
+    frame = load_data(DATA)
+    patients, _ = derive_workflow(
+        frame[frame.stcc_eligible == "Yes"], date(2026, 8, 13)
+    )
+
+    assert set(patients.workflow_state) == {
+        "Appointment / Visit Needed + Tasks Pending",
+        "Appointment / Visit Needed + Tasks Complete",
+        "Visit Completed + Tasks Pending",
+        "Visit Completed + Tasks Complete",
+    }
+    assert set(patients.workflow_category) == {
+        "Immediate Action Required", "Action Needed", "On Track", "Closed Loop"
+    }
