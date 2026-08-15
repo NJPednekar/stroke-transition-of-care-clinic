@@ -12,7 +12,7 @@ import pandas as pd
 
 REQUIRED_COLUMNS = {
     "patient_id", "age", "sex", "stroke_type", "stroke_etiology", "nihss", "mrs",
-    "discharge_date", "discharge_disposition", "stcc_eligible", "appointment_status",
+    "admission_date", "discharge_date", "discharge_disposition", "stcc_eligible", "appointment_status",
     "appointment_date", "med_reconciliation_completed",
     "secondary_prevention_plan_documented", "cardiac_monitoring_needed",
     "cardiac_monitoring_completed", "other_workup_needed", "other_workup_type",
@@ -45,12 +45,15 @@ def load_data(source: str | Path | object) -> pd.DataFrame:
     missing = sorted(REQUIRED_COLUMNS - set(frame.columns))
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
-    if frame["patient_id"].duplicated().any():
-        raise ValueError("patient_id values must be unique.")
     invalid = sorted(set(frame["appointment_status"].dropna()) - APPOINTMENT_STATUSES)
     if invalid:
         raise ValueError(f"Unexpected appointment_status values: {', '.join(invalid)}")
+    frame["admission_date"] = pd.to_datetime(frame["admission_date"], errors="raise")
     frame["discharge_date"] = pd.to_datetime(frame["discharge_date"], errors="raise")
+    if frame.duplicated(["patient_id", "discharge_date"]).any():
+        raise ValueError("patient_id and discharge_date combinations must be unique.")
+    if (frame["admission_date"] >= frame["discharge_date"]).any():
+        raise ValueError("admission_date must be before discharge_date.")
     frame["appointment_date"] = pd.to_datetime(frame["appointment_date"], errors="coerce")
     return frame
 
@@ -97,15 +100,45 @@ def _appointment_gap(row: pd.Series, as_of: date, target_days: int, escalation_d
 
 def derive_workflow(frame: pd.DataFrame, as_of: date, target_days: int = 14, escalation_days: int = 7) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Derive mutually exclusive patient sections and a one-row-per-task table."""
-    df = frame.copy()
+    df = frame.copy().reset_index(drop=True)
     as_timestamp = pd.Timestamp(as_of)
     df["days_since_discharge"] = (as_timestamp - df["discharge_date"]).dt.days
     df["days_discharge_to_appointment"] = (df["appointment_date"] - df["discharge_date"]).dt.days.astype("Int64")
     df["days_until_appointment"] = (df["appointment_date"] - as_timestamp).dt.days.astype("Int64")
+    episode_order = df.sort_values(["patient_id", "discharge_date"]).index
+    ordered = df.loc[episode_order]
+    df.loc[episode_order, "hospitalization_number"] = (
+        ordered.groupby("patient_id").cumcount().add(1).to_numpy()
+    )
+    df["hospitalization_number"] = df["hospitalization_number"].astype("Int64")
+    prior_discharge = ordered.groupby("patient_id")["discharge_date"].shift()
+    df.loc[episode_order, "days_since_prior_discharge"] = (
+        ordered["admission_date"] - prior_discharge
+    ).dt.days.astype("Int64").to_numpy()
+    df["days_since_prior_discharge"] = df["days_since_prior_discharge"].astype("Int64")
+    intervals = df["days_since_prior_discharge"]
+    df["readmission_window"] = "First recorded hospitalization"
+    df.loc[intervals.between(0, 30), "readmission_window"] = "Readmission within 30 days"
+    df.loc[intervals.between(31, 90), "readmission_window"] = "Readmission within 31–90 days"
+    df.loc[intervals > 90, "readmission_window"] = "Readmission after 90 days"
 
     records, tasks = [], []
     for _, row in df.iterrows():
         gaps = identify_gaps(row)
+        visit_completed = row.appointment_status == "Completed"
+        tasks_complete = not gaps
+        if visit_completed:
+            workflow_state = (
+                "Visit Completed + Tasks Complete"
+                if tasks_complete
+                else "Visit Completed + Tasks Pending"
+            )
+        else:
+            workflow_state = (
+                "Appointment / Visit Needed + Tasks Complete"
+                if tasks_complete
+                else "Appointment / Visit Needed + Tasks Pending"
+            )
         appointment_gap = None
         if row.stcc_eligible == "No":
             section, category = "Alternative Transition Pathway", "Route to alternate pathway"
@@ -145,14 +178,17 @@ def derive_workflow(frame: pd.DataFrame, as_of: date, target_days: int = 14, esc
         clinical_gaps = [g for g in gaps if g.kind != "barrier"]
         barriers = [g for g in gaps if g.kind == "barrier"]
         result = row.to_dict() | {
-            "patient_section": section, "workflow_category": category, "primary_reason": reason,
+            "patient_section": section, "workflow_category": category,
+            "workflow_state": workflow_state, "primary_reason": reason,
             "unresolved_task_count": len(all_tasks), "unresolved_domain_count": len({g.domain for g in clinical_gaps}),
             "recorded_barrier_count": len(barriers), "outstanding_needs": "; ".join(g.gap for g in all_tasks) or "None documented",
             "next_actions": " | ".join(g.action for g in all_tasks) or "No action required",
         }
         records.append(result)
         for task in all_tasks:
-            tasks.append({"patient_id": row.patient_id, "patient_section": section, "workflow_category": category,
+            tasks.append({"patient_id": row.patient_id, "discharge_date": row.discharge_date,
+                          "patient_section": section, "workflow_category": category,
+                          "workflow_state": workflow_state,
                           "appointment_status": row.appointment_status, "days_since_discharge": row.days_since_discharge,
                           "task_domain": task.domain, "outstanding_task": task.gap, "recommended_action": task.action})
     patients = pd.DataFrame(records)
