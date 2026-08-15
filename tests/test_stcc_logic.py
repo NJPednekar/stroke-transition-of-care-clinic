@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from stcc_logic import derive_workflow, load_data
+from stcc_logic import derive_workflow, load_data, readmission_outcome_cohorts
 
 
 DATA = Path(__file__).parents[1] / "stroke_transitions_of_care_clinic_synthetic_updated.csv"
@@ -155,6 +155,22 @@ def test_updated_dataset_has_valid_admissions_and_repeat_episode_windows():
     ).dt.days.dropna()
     assert intervals.between(0, 30).any()
     assert intervals.between(31, 90).any()
+
+
+def test_readmission_outcomes_reuse_derived_episode_windows_and_identity():
+    frame = load_data(DATA).query("stcc_eligible == 'Yes'")
+    patients, _ = derive_workflow(frame, date(2026, 8, 13))
+    cohorts = readmission_outcome_cohorts(patients)
+
+    assert list(cohorts) == [
+        "Readmission within 30 days", "Readmission 31–90 days",
+        "No readmission observed to date",
+    ]
+    assert len(cohorts["Readmission within 30 days"]) == 6
+    assert len(cohorts["Readmission 31–90 days"]) == 6
+    assert len(cohorts["No readmission observed to date"]) == 160
+    for cohort in cohorts.values():
+        assert not cohort.duplicated(["patient_id", "discharge_date"]).any()
 
 
 def test_demo_population_represents_every_workflow_state_and_priority():

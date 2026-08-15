@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from stcc_logic import derive_workflow, load_data
+from stcc_logic import derive_workflow, load_data, readmission_outcome_cohorts
 
 
 DATA_FILE = Path(__file__).with_name("stroke_transitions_of_care_clinic_synthetic_updated.csv")
@@ -46,6 +46,9 @@ div[data-testid="stButton"] button{border-radius:11px;border:1px solid #d8d4cd;m
 .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.95rem;box-shadow:0 4px 14px #101f350b}.card h4{margin:0 0 .7rem;border-bottom:2px solid #e9dfce;padding-bottom:.5rem}.fact{display:flex;justify-content:space-between;gap:.6rem;border-bottom:1px solid #eeeae4;padding:.38rem 0;font-size:.82rem}.fact span:first-child{color:var(--muted)}.fact span:last-child{text-align:right;font-weight:650;color:var(--ink)}
 .chip{display:inline-block;border-radius:99px;padding:.15rem .48rem;font-size:.72rem;font-weight:760;background:#eceff2;color:#35465a}.chip.ok{background:#e6f0e9;color:#275f3c}.chip.warn{background:#f7e6e8;color:#84283a}.chip.na{background:#eeece8;color:#6f6a62}
 .st-key-mobile_snapshot{display:none}.task-line{border-left:4px solid var(--wine);background:#fff;padding:.65rem .8rem;margin:.4rem 0;border-radius:6px}.small{color:var(--muted);font-size:.8rem}
+.outcomes-label{margin-top:.8rem;font-size:.69rem;letter-spacing:.13em;text-transform:uppercase;font-weight:800;color:var(--muted)}
+[class*="st-key-outcome_"] button{min-height:3.4rem!important;text-align:left!important;justify-content:flex-start!important;font-size:.82rem!important;background:#fbfaf8!important}
+[class*="st-key-outcome_"] button strong{font-size:1.2rem;color:var(--navy)}
 div[data-testid="stExpander"]{border:1px solid var(--line)!important;border-radius:12px!important;background:#fff!important}
 @media(max-width:900px){.brain{opacity:.28;right:-5rem}.hero{padding:1.6rem 1.3rem}.cards{grid-template-columns:1fr}.st-key-mobile_snapshot{display:block}.st-key-desktop_snapshot{display:none}.block-container{padding-left:.8rem;padding-right:.8rem}}
 </style>
@@ -93,6 +96,8 @@ except (ValueError, OSError, pd.errors.ParserError) as exc:
     st.stop()
 
 patients["workflow_label"] = patients.workflow_state.map(STATE_LABELS)
+readmission_cohorts = readmission_outcome_cohorts(patients)
+st.session_state.setdefault("queue_mode", "Patients")
 if not tasks.empty:
     tasks["workflow_label"] = tasks.workflow_state.map(STATE_LABELS)
 
@@ -145,24 +150,57 @@ def render_update(row: pd.Series, key: str) -> None:
     current = str(row.appointment_status)
     base_status = current if current in ["Not scheduled", "Scheduled", "Cancelled", "No-show"] else "Scheduled"
     with st.form(f"update_{key}_{row.patient_id}_{row.discharge_date:%Y%m%d}"):
-        a, b = st.columns(2)
+        st.markdown("**CLINIC FOLLOW-UP**")
+        a, b, c = st.columns(3)
         status = a.selectbox("Appointment status", ["Not scheduled", "Scheduled", "Cancelled", "No-show"], index=["Not scheduled", "Scheduled", "Cancelled", "No-show"].index(base_status))
-        appointment = a.date_input("Appointment date", value=row.appointment_date.date() if pd.notna(row.appointment_date) else None)
-        completed = a.checkbox("Clinic visit completed", value=current == "Completed")
-        med = b.checkbox("Medication reconciliation complete", value=row.med_reconciliation_completed == "Yes")
-        prevention = b.checkbox("Prevention plan documented", value=row.secondary_prevention_plan_documented == "Yes")
-        pcp = b.checkbox("PCP follow-up arranged", value=row.pcp_followup_arranged == "Yes")
+        appointment = b.date_input("Appointment date", value=row.appointment_date.date() if pd.notna(row.appointment_date) else None)
+        completed = c.checkbox("Clinic visit completed", value=current == "Completed")
+        st.markdown("**CARE COORDINATION**")
+        med = st.checkbox("Medication reconciliation completed", value=row.med_reconciliation_completed == "Yes")
+        prevention = st.checkbox("Secondary prevention plan documented", value=row.secondary_prevention_plan_documented == "Yes")
+        pcp = st.checkbox("PCP follow-up arranged", value=row.pcp_followup_arranged == "Yes")
+        conditional_updates = {}
+        st.caption("Applicable workup, rehabilitation & referrals")
+        conditional_columns = st.columns(2)
+        conditional_index = 0
+        if row.cardiac_monitoring_needed == "Yes":
+            conditional_updates["cardiac_monitoring_completed"] = conditional_columns[conditional_index % 2].checkbox("Cardiac monitoring completed", value=row.cardiac_monitoring_completed == "Yes")
+            conditional_index += 1
+        if row.other_workup_needed == "Yes":
+            conditional_updates["other_workup_completed"] = conditional_columns[conditional_index % 2].checkbox(f"{row.other_workup_type} completed", value=row.other_workup_completed == "Yes")
+            conditional_index += 1
+        if row.rehab_needed == "Yes":
+            conditional_updates["rehab_arranged"] = conditional_columns[conditional_index % 2].checkbox("Rehabilitation arranged", value=row.rehab_arranged == "Yes")
+            conditional_index += 1
+            conditional_updates["rehab_completed"] = conditional_columns[conditional_index % 2].checkbox("Rehabilitation completed", value=row.rehab_completed == "Yes")
+            conditional_index += 1
+        if row.specialty_referral_needed == "Yes":
+            conditional_updates["specialty_referral_completed"] = conditional_columns[conditional_index % 2].checkbox("Specialty referral completed", value=row.specialty_referral_completed == "Yes")
+        if not conditional_updates:
+            st.caption("No additional workup, rehabilitation, or referral is required for this episode.")
+        st.markdown("**ACCESS & SUPPORT**")
+        access_columns = st.columns(2)
+        access_updates = {
+            "limited_caregiver_support": access_columns[0].checkbox("Limited caregiver support", value=row.limited_caregiver_support == "Yes"),
+            "transportation_barrier": access_columns[1].checkbox("Transportation barrier", value=row.transportation_barrier == "Yes"),
+            "economic_or_insurance_barrier": access_columns[0].checkbox("Insurance / economic access barrier", value=row.economic_or_insurance_barrier == "Yes"),
+            "housing_instability": access_columns[1].checkbox("Housing instability", value=row.housing_instability == "Yes"),
+            "food_insecurity": access_columns[0].checkbox("Food insecurity", value=row.food_insecurity == "Yes"),
+        }
         if st.form_submit_button("Save & recalculate", type="primary"):
             if status == "Scheduled" and appointment is None and not completed:
                 st.error("Choose an appointment date for a scheduled visit.")
             else:
-                st.session_state.setdefault("demo_episode_updates", {})[episode_key(row)] = {
+                values = {
                     "appointment_status": "Completed" if completed else status,
                     "appointment_date": pd.Timestamp(appointment) if appointment else pd.NaT,
                     "med_reconciliation_completed": "Yes" if med else "No",
                     "secondary_prevention_plan_documented": "Yes" if prevention else "No",
                     "pcp_followup_arranged": "Yes" if pcp else "No",
                 }
+                values.update({field: "Yes" if value else "No" for field, value in conditional_updates.items()})
+                values.update({field: "Yes" if value else "No" for field, value in access_updates.items()})
+                st.session_state.setdefault("demo_episode_updates", {})[episode_key(row)] = values
                 st.rerun()
 
 
@@ -194,15 +232,31 @@ for index, label in enumerate(STATE_ORDER):
             st.session_state.patient_page = 1
             st.rerun()
 
-mode = st.segmented_control("Workspace", ["Patients", "Care Team Tasks"], default=st.session_state.get("queue_mode", "Patients"), key="queue_mode")
+st.markdown('<div class="outcomes-label">Readmission outcomes</div>', unsafe_allow_html=True)
+outcome_tiles = st.columns(3)
+for index, (label, cohort) in enumerate(readmission_cohorts.items()):
+    with outcome_tiles[index], st.container(key=f"outcome_{index}"):
+        if st.button(f"**{len(cohort):,}**  {label}", key=f"choose_outcome_{index}", width="stretch"):
+            st.session_state.patient_group = label
+            st.session_state.queue_mode = "Patients"
+            st.session_state.selected_episode = None
+            st.session_state.patient_page = 1
+            st.rerun()
+st.caption("Outcomes observed to date; episodes may not yet have completed 90 days of follow-up.")
+
+mode = st.segmented_control("Workspace", ["Patients", "Care Team Tasks"], key="queue_mode")
 with st.container(key="queue_shell"):
     st.markdown('<div class="queue-head">Clinical work queue</div>', unsafe_allow_html=True)
     if mode == "Patients":
         f1, f2, f3 = st.columns([1.4, 1.2, 1])
-        group = f1.selectbox("Patient group", STATE_ORDER, index=STATE_ORDER.index(st.session_state.get("patient_group", STATE_ORDER[0])), key="patient_group")
+        patient_groups = STATE_ORDER + list(readmission_cohorts)
+        current_group = st.session_state.get("patient_group", STATE_ORDER[0])
+        if current_group not in patient_groups:
+            current_group = STATE_ORDER[0]
+        group = f1.selectbox("Patient group", patient_groups, index=patient_groups.index(current_group), key="patient_group")
         search = f2.text_input("Search patient", placeholder="ID")
         sort = f3.selectbox("Sort", ["Priority", "Newest discharge", "Oldest discharge"])
-        view = patients[patients.workflow_label == group].copy()
+        view = (readmission_cohorts[group] if group in readmission_cohorts else patients[patients.workflow_label == group]).copy()
         if search:
             view = view[view.patient_id.str.contains(search, case=False, na=False) | view.patient_id.map(number).str.contains(search, case=False, na=False)]
         if sort == "Newest discharge": view = view.sort_values("discharge_date", ascending=False)
@@ -258,3 +312,7 @@ with st.container(key="queue_shell"):
 with st.expander("Workflow definitions & history"):
     st.markdown("**Appointment Needed · Tasks Pending** — visit incomplete and transition tasks remain.  \n**Appointment Needed · Tasks Complete** — transition tasks are complete while the visit remains scheduled or needed.  \n**Appointment Completed · Tasks Pending** — clinic visit occurred, but unresolved work remains.  \n**Transition Complete** — clinic visit and all applicable transition tasks are complete. History remains available through the Patient group filter.")
     st.caption(f"Current as of {as_of:%B %d, %Y} · {len(patients):,} eligible episodes · counts are calculated from episode data")
+
+with st.expander("HOW PATIENTS ARE PRIORITIZED"):
+    st.markdown("**Immediate Action Required**  \nTime-sensitive follow-up issue such as a cancelled/no-show visit, a scheduled visit date that has passed without completion, an unscheduled patient beyond the configured outreach threshold, or multiple unresolved care needs combined with a documented access barrier.\n\n**Action Needed**  \nFollow-up or transition-care work remains, but the episode does not meet the Immediate Action Required threshold.\n\n**On Track**  \nThe stroke clinic appointment is scheduled within the target follow-up window and there are no documented pre-visit actions requiring attention.")
+    st.caption("Priority is calculated automatically from appointment timing, unresolved care needs, and documented barriers. It is not manually assigned.")
